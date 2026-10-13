@@ -3,9 +3,11 @@ package com.nisra.client.ui;
 import com.nisra.client.module.Category;
 import com.nisra.client.module.ModuleManager;
 import com.nisra.client.ui.component.Frame;
+import com.nisra.client.ui.component.ModuleButton;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
+import org.lwjgl.glfw.GLFW;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -25,7 +27,6 @@ public class ClickGUIScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Fondo semi-transparente moderno
         context.fillGradient(0, 0, this.width, this.height, new Color(18, 18, 24, 220).getRGB(), new Color(28, 28, 38, 220).getRGB());
         
         for (Frame frame : frames) {
@@ -64,6 +65,25 @@ public class ClickGUIScreen extends Screen {
             frame.mouseScrolled((int) mouseX, (int) mouseY, amount);
         }
         return super.mouseScrolled(mouseX, mouseY, amount);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // Buscar si hay algún botón de módulo esperando una tecla para asignarla
+        for (Frame frame : frames) {
+            for (ModuleButton button : frame.getButtons()) {
+                if (button.isListeningForKey()) {
+                    if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                        button.getModule().setKey(0); // Borrar tecla si presiona ESC o Backspace
+                    } else {
+                        button.getModule().setKey(keyCode); // Asignar nueva tecla
+                    }
+                    button.setListeningForKey(false);
+                    return true;
+                }
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
