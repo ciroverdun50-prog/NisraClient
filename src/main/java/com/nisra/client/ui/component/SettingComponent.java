@@ -56,6 +56,10 @@ public class SettingComponent {
         this.y = y;
     }
 
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
     public boolean isHovered(double mouseX, double mouseY) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
