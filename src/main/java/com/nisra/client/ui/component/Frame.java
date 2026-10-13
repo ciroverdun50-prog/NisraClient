@@ -44,10 +44,10 @@ public class Frame {
             int totalContentHeight = buttons.size() * 25;
             int renderHeight = Math.min(totalContentHeight, maxHeight);
 
-            // Fondo del contenedor de módulos
+            // Fondo del área del contenido
             context.fill(x, y + 25, x + width, y + 25 + renderHeight, new Color(20, 20, 28, 180).getRGB());
 
-            // Sistema de recorte (Scissor) para que el scroll funcione limpio dentro del panel
+            // Recorte de pantalla para scroll
             context.enableScissor(x, y + 25, x + width, y + 25 + renderHeight);
             
             int currentY = y + 25 + (int) scrollOffset;
@@ -109,5 +109,11 @@ public class Frame {
         }
     }
 
-    public int getWidth() { return width; }
+    public List<ModuleButton> getButtons() {
+        return buttons;
+    }
+
+    public int getWidth() {
+        return width;
+    }
 }
