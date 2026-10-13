@@ -1,67 +1,93 @@
-package com.nisra.client.ui.component;
+package com.nisra.client.gui;
 
 import com.nisra.client.module.Module;
+import com.nisra.client.module.settings.Setting;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.InputUtil;
 
-import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ModuleButton {
     private final Module module;
-    private final Frame parent;
-    private final int offsetY;
-    private boolean listeningForKey = false;
+    private int x, y, width, height;
+    private boolean extended = false;
+    private final List<SettingComponent> settingComponents = new ArrayList<>();
 
-    public ModuleButton(Module module, Frame parent, int offsetY) {
+    public ModuleButton(Module module, int x, int y, int width, int height) {
         this.module = module;
-        this.parent = parent;
-        this.offsetY = offsetY;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+
+        int currentY = y + height;
+        for (Setting setting : module.getSettings()) {
+            settingComponents.add(new SettingComponent(setting, x + 4, currentY, width - 8, 16));
+            currentY += 16;
+        }
     }
 
-    public void draw(DrawContext context, int renderX, int renderY, int mouseX, int mouseY) {
-        int bgColor = module.isEnabled() ? new Color(70, 50, 180).getRGB() : new Color(35, 35, 48).getRGB();
-        
-        if (mouseX >= renderX && mouseX <= renderX + parent.getWidth() && mouseY >= renderY && mouseY <= renderY + 25) {
-            bgColor = module.isEnabled() ? new Color(85, 65, 200).getRGB() : new Color(45, 45, 60).getRGB();
+    public void render(DrawContext context, TextRenderer textRenderer, int mouseX, int mouseY) {
+        // Color según estado (Activado / Desactivado)
+        int color = module.isEnabled() ? 0xDD2A75D3 : 0xDD2D2D34;
+        if (isHovered(mouseX, mouseY)) {
+            color = module.isEnabled() ? 0xFF3B82F6 : 0xFF3F3F46;
         }
 
-        context.fill(renderX, renderY, renderX + parent.getWidth(), renderY + 25, bgColor);
+        // Render botón del módulo
+        context.fill(x, y, x + width, y + height, color);
+        context.drawTextWithShadow(textRenderer, module.getName(), x + 6, y + 5, 0xFFFFFFFF);
 
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
-        int textColor = module.isEnabled() ? Color.WHITE.getRGB() : new Color(170, 170, 185).getRGB();
-        
-        // Mostrar nombre del módulo y entre corchetes la tecla asignada (o "..." si está esperando tecla)
-        String keyName = listeningForKey ? "..." : (module.getKey() == 0 ? "NONE" : InputUtil.fromKeyCode(module.getKey(), 0).getLocalizedText().getString().toUpperCase());
-        String displayText = module.getName() + " §7[" + keyName + "]";
-
-        context.drawText(textRenderer, displayText, renderX + 12, renderY + 8, textColor, true);
-    }
-
-    public void mousePressed(int mouseX, int mouseY, int button, int renderX, int renderY) {
-        if (mouseX >= renderX && mouseX <= renderX + parent.getWidth() && mouseY >= renderY && mouseY <= renderY + 25) {
-            if (button == 0) {
-                // Click izquierdo: Alternar módulo
-                module.toggle();
-            } else if (button == 1) {
-                // Click derecho: Activar modo de escucha para cambiar tecla
-                listeningForKey = !listeningForKey;
+        // Submenú de configuraciones si está desplegado
+        if (extended) {
+            int currentY = y + height;
+            for (SettingComponent comp : settingComponents) {
+                comp.setPosition(x + 4, currentY);
+                comp.render(context, textRenderer, mouseX, mouseY);
+                currentY += comp.getHeight();
             }
         }
     }
 
-    public void mouseReleased(int mouseX, int mouseY, int button) {}
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (isHovered(mouseX, mouseY)) {
+            if (button == 0) { // Clic izquierdo -> Toggle Módulo
+                module.toggle();
+                return true;
+            } else if (button == 1) { // Clic derecho -> Expandir/Contraer opciones
+                this.extended = !this.extended;
+                return true;
+            }
+        }
 
-    public boolean isListeningForKey() {
-        return listeningForKey;
+        // Delegar clic a las configuraciones si está desplegado
+        if (extended) {
+            for (SettingComponent comp : settingComponents) {
+                if (comp.mouseClicked(mouseX, mouseY, button)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
-    public void setListeningForKey(boolean listeningForKey) {
-        this.listeningForKey = listeningForKey;
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
     }
 
-    public Module getModule() {
-        return module;
+    public int getTotalHeight() {
+        if (!extended) return height;
+        int total = height;
+        for (SettingComponent comp : settingComponents) {
+            total += comp.getHeight();
+        }
+        return total;
+    }
+
+    public boolean isHovered(double mouseX, double mouseY) {
+        return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 }
