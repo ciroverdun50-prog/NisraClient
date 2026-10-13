@@ -19,8 +19,9 @@ public class NumberSetting extends Setting {
     }
 
     public void setValue(double value) {
-        double precision = 1.0 / increment;
-        this.value = Math.round(Math.max(minimum, Math.min(maximum, value)) * precision) / precision;
+        double precision = 1.0 / this.increment;
+        double rounded = Math.round(Math.max(this.minimum, Math.min(this.maximum, value)) * precision) / precision;
+        this.value = rounded;
     }
 
     public double getMinimum() {
@@ -28,6 +29,15 @@ public class NumberSetting extends Setting {
     }
 
     public double getMaximum() {
+        return maximum;
+    }
+
+    // Métodos alias (getMin / getMax) para la barra desplazable interactiva de ModuleButton
+    public double getMin() {
+        return minimum;
+    }
+
+    public double getMax() {
         return maximum;
     }
 
