@@ -1,6 +1,7 @@
 package com.nisra.client.module;
 
 import com.nisra.client.module.modules.AimAssistModule;
+import com.nisra.client.module.modules.AutoJumpResetModule;
 import com.nisra.client.module.modules.HUDModule;
 import com.nisra.client.module.modules.TriggerBotModule;
 
@@ -14,6 +15,7 @@ public class ModuleManager {
         // Registro de módulos de NisraClient
         register(new AimAssistModule());
         register(new TriggerBotModule());
+        register(new AutoJumpResetModule());
         register(new HUDModule());
     }
 
