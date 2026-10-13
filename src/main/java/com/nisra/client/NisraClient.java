@@ -31,6 +31,8 @@ public class NisraClient implements ClientModInitializer {
                 client.setScreen(clickGUI);
             }
 
+            moduleManager.onKeyBoardInput();
+
             for (var module : moduleManager.getModules()) {
                 if (module.isEnabled()) {
                     module.onUpdate();
