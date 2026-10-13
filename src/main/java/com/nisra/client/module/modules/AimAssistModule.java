@@ -11,9 +11,8 @@ import net.minecraft.item.SwordItem;
 import net.minecraft.util.math.MathHelper;
 
 public class AimAssistModule extends Module {
-    // Ajustes configurables para el ClickGUI
     private final NumberSetting speed = new NumberSetting("Speed", 2.5, 0.1, 10.0, 0.1);
-    private final NumberSetting fov = new NumberSetting("FOV", 70.0, 10.0, 180.0, 5.0);
+    private final NumberSetting fov = new NumberSetting("FOV", 70.0, 10.0, 360.0, 5.0); // Ampliado hasta 360°
     private final NumberSetting distance = new NumberSetting("Distance", 4.2, 1.0, 6.0, 0.1);
     private final BooleanSetting onlySword = new BooleanSetting("Only Sword", true);
 
@@ -30,7 +29,6 @@ public class AimAssistModule extends Module {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null) return;
 
-        // Verificación de espada en mano principal
         if (onlySword.getValue() && !(client.player.getMainHandStack().getItem() instanceof SwordItem)) {
             return;
         }
@@ -60,6 +58,10 @@ public class AimAssistModule extends Module {
 
     private boolean isInFov(Entity entity, double fovAngle) {
         MinecraftClient client = MinecraftClient.getInstance();
+        
+        // Si el FOV está configurado en 360, cubre todo alrededor del jugador
+        if (fovAngle >= 360.0) return true;
+
         double diffX = entity.getX() - client.player.getX();
         double diffZ = entity.getZ() - client.player.getZ();
         
@@ -70,7 +72,6 @@ public class AimAssistModule extends Module {
     }
 
     private void aimAtTargetSmooth(MinecraftClient client, Entity target) {
-        // Cálculo de posición del objetivo (apuntando al pecho/cabeza suavemente)
         double diffX = target.getX() - client.player.getX();
         double diffY = (target.getY() + target.getEyeHeight(target.getPose()) * 0.85) - (client.player.getY() + client.player.getEyeHeight(client.player.getPose()));
         double diffZ = target.getZ() - client.player.getZ();
@@ -82,12 +83,9 @@ public class AimAssistModule extends Module {
         float currentYaw = client.player.getYaw();
         float currentPitch = client.player.getPitch();
 
-        // Diferencia de ángulos limpia (wrapToDegrees evita giros bruscos de 360°)
         float yawDelta = MathHelper.wrapDegrees(targetYaw - currentYaw);
         float pitchDelta = MathHelper.wrapDegrees(targetPitch - currentPitch);
 
-        // Factor de suavizado (Smooth Interpolation)
-        // A menor valor de speed, más imperceptible e imantado es el movimiento de la cámara
         float smoothFactor = (float) (speed.getValue() * 0.05);
 
         float newYaw = currentYaw + (yawDelta * smoothFactor);
