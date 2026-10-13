@@ -8,10 +8,12 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.SwordItem;
+import net.minecraft.util.math.MathHelper;
 
 public class AimAssistModule extends Module {
-    private final NumberSetting speed = new NumberSetting("Speed", 3.0, 0.5, 10.0, 0.5);
-    private final NumberSetting fov = new NumberSetting("FOV", 90.0, 15.0, 180.0, 5.0);
+    // Ajustes configurables para el ClickGUI
+    private final NumberSetting speed = new NumberSetting("Speed", 2.5, 0.1, 10.0, 0.1);
+    private final NumberSetting fov = new NumberSetting("FOV", 70.0, 10.0, 180.0, 5.0);
     private final NumberSetting distance = new NumberSetting("Distance", 4.2, 1.0, 6.0, 0.1);
     private final BooleanSetting onlySword = new BooleanSetting("Only Sword", true);
 
@@ -28,13 +30,14 @@ public class AimAssistModule extends Module {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null) return;
 
+        // Verificación de espada en mano principal
         if (onlySword.getValue() && !(client.player.getMainHandStack().getItem() instanceof SwordItem)) {
             return;
         }
 
         Entity target = getBestTarget();
         if (target != null) {
-            aimAtTarget(client, target);
+            aimAtTargetSmooth(client, target);
         }
     }
 
@@ -45,7 +48,7 @@ public class AimAssistModule extends Module {
 
         for (Entity entity : client.world.getEntities()) {
             if (entity == client.player || !(entity instanceof LivingEntity) || !entity.isAlive()) continue;
-            
+
             double dist = client.player.distanceTo(entity);
             if (dist <= closestDistance && isInFov(entity, fov.getValue())) {
                 closestDistance = dist;
@@ -59,24 +62,38 @@ public class AimAssistModule extends Module {
         MinecraftClient client = MinecraftClient.getInstance();
         double diffX = entity.getX() - client.player.getX();
         double diffZ = entity.getZ() - client.player.getZ();
+        
         double yawToTarget = Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0;
-        double angleDiff = Math.abs((client.player.getYaw() - yawToTarget) % 360.0);
-        if (angleDiff > 180.0) angleDiff = 360.0 - angleDiff;
-        return angleDiff <= fovAngle / 2.0;
+        double angleDiff = MathHelper.wrapDegrees(yawToTarget - client.player.getYaw());
+
+        return Math.abs(angleDiff) <= fovAngle / 2.0;
     }
 
-    private void aimAtTarget(MinecraftClient client, Entity target) {
+    private void aimAtTargetSmooth(MinecraftClient client, Entity target) {
+        // Cálculo de posición del objetivo (apuntando al pecho/cabeza suavemente)
         double diffX = target.getX() - client.player.getX();
+        double diffY = (target.getY() + target.getEyeHeight(target.getPose()) * 0.85) - (client.player.getY() + client.player.getEyeHeight(client.player.getPose()));
         double diffZ = target.getZ() - client.player.getZ();
-        double yawToTarget = Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0;
+        double distXZ = Math.hypot(diffX, diffZ);
+
+        float targetYaw = (float) (Math.toDegrees(Math.atan2(diffZ, diffX)) - 90.0);
+        float targetPitch = (float) (-Math.toDegrees(Math.atan2(diffY, distXZ)));
 
         float currentYaw = client.player.getYaw();
-        float yawDiff = (float) (yawToTarget - currentYaw);
-        
-        while (yawDiff < -180.0f) yawDiff += 360.0f;
-        while (yawDiff >= 180.0f) yawDiff -= 360.0f;
+        float currentPitch = client.player.getPitch();
 
-        float adjustment = (float) (yawDiff * (speed.getValue() / 10.0));
-        client.player.setYaw(currentYaw + adjustment);
+        // Diferencia de ángulos limpia (wrapToDegrees evita giros bruscos de 360°)
+        float yawDelta = MathHelper.wrapDegrees(targetYaw - currentYaw);
+        float pitchDelta = MathHelper.wrapDegrees(targetPitch - currentPitch);
+
+        // Factor de suavizado (Smooth Interpolation)
+        // A menor valor de speed, más imperceptible e imantado es el movimiento de la cámara
+        float smoothFactor = (float) (speed.getValue() * 0.05);
+
+        float newYaw = currentYaw + (yawDelta * smoothFactor);
+        float newPitch = currentPitch + (pitchDelta * smoothFactor);
+
+        client.player.setYaw(newYaw);
+        client.player.setPitch(MathHelper.clamp(newPitch, -90.0f, 90.0f));
     }
 }
