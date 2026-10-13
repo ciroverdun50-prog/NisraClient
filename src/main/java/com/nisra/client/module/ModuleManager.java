@@ -1,7 +1,7 @@
 package com.nisra.client.module;
 
 import com.nisra.client.module.modules.AimAssistModule;
-import com.nisra.client.module.modules.TriggerBotModule; // 1. Importar el módulo
+import com.nisra.client.module.modules.TriggerBotModule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,9 +10,9 @@ public class ModuleManager {
     private final List<Module> modules = new ArrayList<>();
 
     public ModuleManager() {
-        // 2. Registrar los módulos de combate aquí
+        // Registro de módulos
         register(new AimAssistModule());
-        register(new TriggerBotModule()); // <--- ¡AQUÍ SE AGREGA TRIGGERBOT!
+        register(new TriggerBotModule());
     }
 
     private void register(Module module) {
@@ -31,5 +31,17 @@ public class ModuleManager {
             }
         }
         return categoryModules;
+    }
+
+    public void onKeyBoardInput() {
+        // Reservado para verificar presionado de teclas globales en caso de ser necesario
+    }
+
+    public void onUpdate() {
+        for (Module module : modules) {
+            if (module.isEnabled()) {
+                module.onUpdate();
+            }
+        }
     }
 }
