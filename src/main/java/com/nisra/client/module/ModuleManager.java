@@ -1,6 +1,7 @@
 package com.nisra.client.module;
 
 import com.nisra.client.module.modules.AimAssistModule;
+import com.nisra.client.module.modules.HUDModule;
 import com.nisra.client.module.modules.TriggerBotModule;
 
 import java.util.ArrayList;
@@ -10,9 +11,10 @@ public class ModuleManager {
     private final List<Module> modules = new ArrayList<>();
 
     public ModuleManager() {
-        // Registro de módulos
+        // Registro de módulos de NisraClient
         register(new AimAssistModule());
         register(new TriggerBotModule());
+        register(new HUDModule());
     }
 
     private void register(Module module) {
@@ -34,7 +36,7 @@ public class ModuleManager {
     }
 
     public void onKeyBoardInput() {
-        // Reservado para verificar presionado de teclas globales en caso de ser necesario
+        // Reservado para escuchar combinaciones de teclas si es necesario
     }
 
     public void onUpdate() {
