@@ -1,119 +1,94 @@
 package com.nisra.client.ui.component;
 
 import com.nisra.client.module.Category;
-import com.nisra.client.module.Module;
-import com.nisra.client.module.ModuleManager;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.MinecraftClient;
 
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Frame {
     private final Category category;
-    private int x, y, width, maxHeight;
+    private int x, y, width, height;
     private boolean dragging;
     private int dragX, dragY;
     private boolean extended = true;
-    private float scrollOffset = 0;
     private final List<ModuleButton> buttons = new ArrayList<>();
 
-    public Frame(Category category, int x, int y, int width, int maxHeight, ModuleManager moduleManager) {
+    public Frame(Category category, int x, int y, int width, int height) {
         this.category = category;
         this.x = x;
         this.y = y;
         this.width = width;
-        this.maxHeight = maxHeight;
-
-        int offsetY = 25;
-        for (Module module : moduleManager.getModulesByCategory(category)) {
-            buttons.add(new ModuleButton(module, this, offsetY));
-            offsetY += 25;
-        }
+        this.height = height;
     }
 
-    public void draw(DrawContext context, int mouseX, int mouseY) {
-        // Cabecera del panel
-        context.fill(x, y, x + width, y + 25, new Color(30, 30, 42).getRGB());
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
-        context.drawText(textRenderer, category.getName(), x + 12, y + 8, new Color(110, 80, 240).getRGB(), true);
-
-        if (extended && !buttons.isEmpty()) {
-            int totalContentHeight = buttons.size() * 25;
-            int renderHeight = Math.min(totalContentHeight, maxHeight);
-
-            // Fondo del área del contenido
-            context.fill(x, y + 25, x + width, y + 25 + renderHeight, new Color(20, 20, 28, 180).getRGB());
-
-            // Recorte de pantalla para scroll
-            context.enableScissor(x, y + 25, x + width, y + 25 + renderHeight);
-            
-            int currentY = y + 25 + (int) scrollOffset;
-            for (ModuleButton button : buttons) {
-                button.draw(context, x, currentY, mouseX, mouseY);
-                currentY += 25;
-            }
-
-            context.disableScissor();
-        }
+    public void addButton(ModuleButton button) {
+        buttons.add(button);
     }
 
-    public void mousePressed(int mouseX, int mouseY, int button) {
-        if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + 25) {
-            if (button == 0) {
-                dragging = true;
-                dragX = mouseX - x;
-                dragY = mouseY - y;
-            } else if (button == 1) {
-                extended = !extended;
-            }
-        }
-
-        if (extended) {
-            int totalContentHeight = buttons.size() * 25;
-            int renderHeight = Math.min(totalContentHeight, maxHeight);
-            if (mouseX >= x && mouseX <= x + width && mouseY >= y + 25 && mouseY <= y + 25 + renderHeight) {
-                int currentY = y + 25 + (int) scrollOffset;
-                for (ModuleButton mb : buttons) {
-                    mb.mousePressed(mouseX, mouseY, button, x, currentY);
-                    currentY += 25;
-                }
-            }
-        }
-    }
-
-    public void mouseReleased(int mouseX, int mouseY, int button) {
-        dragging = false;
-        if (extended) {
-            for (ModuleButton mb : buttons) {
-                mb.mouseReleased(mouseX, mouseY, button);
-            }
-        }
-    }
-
-    public void mouseDragged(int mouseX, int mouseY) {
+    public void render(DrawContext context, TextRenderer textRenderer, int mouseX, int mouseY, float delta) {
         if (dragging) {
             x = mouseX - dragX;
             y = mouseY - dragY;
         }
-    }
 
-    public void mouseScrolled(int mouseX, int mouseY, double amount) {
-        if (extended && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + 25 + maxHeight) {
-            scrollOffset += (float) (amount * 12);
-            int maxScroll = -Math.max(0, (buttons.size() * 25) - maxHeight);
-            if (scrollOffset > 0) scrollOffset = 0;
-            if (scrollOffset < maxScroll) scrollOffset = maxScroll;
+        // Renderizar la cabecera de la categoría
+        context.fill(x, y, x + width, y + height, 0xFF1E1E24);
+        context.drawTextWithShadow(textRenderer, category.getName(), x + 6, y + 5, 0xFFFFFFFF);
+
+        if (extended) {
+            int currentY = y + height;
+            for (ModuleButton button : buttons) {
+                button.draw(context, x, currentY, mouseX, mouseY);
+                // IMPORTANTE: Sumar la altura total para que los siguientes botones bajen correctamente
+                currentY += button.getTotalHeight();
+            }
         }
     }
 
-    public List<ModuleButton> getButtons() {
-        return buttons;
+    public boolean mousePressed(double mouseX, double mouseY, int button) {
+        if (isHovered(mouseX, mouseY, x, y, width, height)) {
+            if (button == 0) { // Clic izquierdo para arrastrar ventana
+                dragging = true;
+                dragX = (int) mouseX - x;
+                dragY = (int) mouseY - y;
+                return true;
+            } else if (button == 1) { // Clic derecho para contraer toda la categoría
+                extended = !extended;
+                return true;
+            }
+        }
+
+        if (extended) {
+            int currentY = y + height;
+            for (ModuleButton mb : buttons) {
+                if (mb.mousePressed((int) mouseX, (int) mouseY, button, x, currentY)) {
+                    return true;
+                }
+                currentY += mb.getTotalHeight();
+            }
+        }
+
+        return false;
     }
 
-    public int getWidth() {
-        return width;
+    public void mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            dragging = false;
+        }
+        for (ModuleButton mb : buttons) {
+            mb.mouseReleased((int) mouseX, (int) mouseY, button);
+        }
+    }
+
+    public int getX() { return x; }
+    public int getY() { return y; }
+    public int getWidth() { return width; }
+    public int getHeight() { return height; }
+    public int getHeaderHeight() { return height; }
+
+    private boolean isHovered(double mouseX, double mouseY, int x, int y, int width, int height) {
+        return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 }
