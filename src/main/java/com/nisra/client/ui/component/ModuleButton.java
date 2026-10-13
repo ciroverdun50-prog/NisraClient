@@ -10,50 +10,62 @@ import java.util.List;
 
 public class ModuleButton {
     private final Module module;
-    private int x, y, width, height;
+    private final Frame parent;
+    private int offsetY;
     private boolean extended = false;
+    private boolean listeningForKey = false;
     private final List<SettingComponent> settingComponents = new ArrayList<>();
 
-    public ModuleButton(Module module, int x, int y, int width, int height) {
+    public ModuleButton(Module module, Frame parent, int offsetY) {
         this.module = module;
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
+        this.parent = parent;
+        this.offsetY = offsetY;
 
-        int currentY = y + height;
+        int currentY = parent.getY() + parent.getHeaderHeight() + offsetY + 18;
         for (Setting setting : module.getSettings()) {
-            settingComponents.add(new SettingComponent(setting, x + 4, currentY, width - 8, 16));
+            settingComponents.add(new SettingComponent(setting, parent.getX() + 4, currentY, parent.getWidth() - 8, 16));
             currentY += 16;
         }
     }
 
-    public void render(DrawContext context, TextRenderer textRenderer, int mouseX, int mouseY) {
+    public void draw(DrawContext context, int parentX, int currentY, int mouseX, int mouseY) {
+        int width = parent.getWidth();
+        int height = 18;
+
         int color = module.isEnabled() ? 0xDD2A75D3 : 0xDD2D2D34;
-        if (isHovered(mouseX, mouseY)) {
+        if (isHovered(parentX, currentY, mouseX, mouseY, width, height)) {
             color = module.isEnabled() ? 0xFF3B82F6 : 0xFF3F3F46;
         }
 
-        context.fill(x, y, x + width, y + height, color);
-        context.drawTextWithShadow(textRenderer, module.getName(), x + 6, y + 5, 0xFFFFFFFF);
+        context.fill(parentX, currentY, parentX + width, currentY + height, color);
+
+        TextRenderer tr = net.minecraft.client.MinecraftClient.getInstance().textRenderer;
+        String displayText = listeningForKey ? module.getName() + " [Listening...]" : module.getName();
+        context.drawTextWithShadow(tr, displayText, parentX + 6, currentY + 5, 0xFFFFFFFF);
 
         if (extended) {
-            int currentY = y + height;
+            int settingY = currentY + height;
             for (SettingComponent comp : settingComponents) {
-                comp.setPosition(x + 4, currentY);
-                comp.render(context, textRenderer, mouseX, mouseY);
-                currentY += comp.getHeight();
+                comp.setPosition(parentX + 4, settingY);
+                comp.render(context, tr, mouseX, mouseY);
+                settingY += comp.getHeight();
             }
         }
     }
 
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (isHovered(mouseX, mouseY)) {
-            if (button == 0) { // Clic izquierdo -> Toggle Módulo
+    public boolean mousePressed(int mouseX, int mouseY, int button, int parentX, int currentY) {
+        int width = parent.getWidth();
+        int height = 18;
+
+        if (isHovered(parentX, currentY, mouseX, mouseY, width, height)) {
+            if (button == 0) { // Clic Izquierdo -> Toggle
                 module.toggle();
                 return true;
-            } else if (button == 1) { // Clic derecho -> Desplegar / Contraer
+            } else if (button == 1) { // Clic Derecho -> Expandir Settings
                 this.extended = !this.extended;
+                return true;
+            } else if (button == 2) { // Clic Central (Scroll) -> Escuchar Tecla
+                this.listeningForKey = !this.listeningForKey;
                 return true;
             }
         }
@@ -69,25 +81,40 @@ public class ModuleButton {
         return false;
     }
 
+    public void mouseReleased(int mouseX, int mouseY, int button) {
+        // Reservado para interacciones de arrastre de sliders
+    }
+
     public Module getModule() {
         return module;
     }
 
-    public void setPosition(int x, int y) {
-        this.x = x;
-        this.y = y;
+    public boolean isListeningForKey() {
+        return listeningForKey;
+    }
+
+    public void setListeningForKey(boolean listeningForKey) {
+        this.listeningForKey = listeningForKey;
+    }
+
+    public int getOffsetY() {
+        return offsetY;
+    }
+
+    public void setOffsetY(int offsetY) {
+        this.offsetY = offsetY;
     }
 
     public int getTotalHeight() {
-        if (!extended) return height;
-        int total = height;
+        if (!extended) return 18;
+        int total = 18;
         for (SettingComponent comp : settingComponents) {
             total += comp.getHeight();
         }
         return total;
     }
 
-    public boolean isHovered(double mouseX, double mouseY) {
+    private boolean isHovered(int x, int y, int mouseX, int mouseY, int width, int height) {
         return mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
     }
 }
