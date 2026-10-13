@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "nisraclient",
+  "version": "1.0.0",
+  "name": "NisraClient",
+  "description": "Custom modular Minecraft client built by Nono",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.nisra.client.NisraClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.14.21",
+    "minecraft": "1.20.1",
+    "java": "17",
+    "fabric-api": "*"
+  }
+}
