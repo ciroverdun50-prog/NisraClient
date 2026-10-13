@@ -21,23 +21,21 @@ public class ModuleButton {
         this.parent = parent;
         this.offsetY = offsetY;
 
-        int currentY = parent.getY() + parent.getHeaderHeight() + offsetY + 18;
         for (Setting setting : module.getSettings()) {
-            settingComponents.add(new SettingComponent(setting, parent.getX() + 4, currentY, parent.getWidth() - 8, 16));
-            currentY += 16;
+            settingComponents.add(new SettingComponent(setting, 0, 0, 100, 16));
         }
     }
 
     public void draw(DrawContext context, int parentX, int currentY, int mouseX, int mouseY) {
-        int width = parent.getWidth();
+        int widthBtn = 100;
         int height = 18;
 
         int color = module.isEnabled() ? 0xDD2A75D3 : 0xDD2D2D34;
-        if (isHovered(parentX, currentY, mouseX, mouseY, width, height)) {
+        if (isHovered(parentX, currentY, mouseX, mouseY, widthBtn, height)) {
             color = module.isEnabled() ? 0xFF3B82F6 : 0xFF3F3F46;
         }
 
-        context.fill(parentX, currentY, parentX + width, currentY + height, color);
+        context.fill(parentX, currentY, parentX + widthBtn, currentY + height, color);
 
         TextRenderer tr = net.minecraft.client.MinecraftClient.getInstance().textRenderer;
         String displayText = listeningForKey ? module.getName() + " [Listening...]" : module.getName();
@@ -47,6 +45,7 @@ public class ModuleButton {
             int settingY = currentY + height;
             for (SettingComponent comp : settingComponents) {
                 comp.setPosition(parentX + 4, settingY);
+                comp.setWidth(widthBtn - 8);
                 comp.render(context, tr, mouseX, mouseY);
                 settingY += comp.getHeight();
             }
@@ -54,17 +53,17 @@ public class ModuleButton {
     }
 
     public boolean mousePressed(int mouseX, int mouseY, int button, int parentX, int currentY) {
-        int width = parent.getWidth();
+        int widthBtn = 100;
         int height = 18;
 
-        if (isHovered(parentX, currentY, mouseX, mouseY, width, height)) {
+        if (isHovered(parentX, currentY, mouseX, mouseY, widthBtn, height)) {
             if (button == 0) { // Clic Izquierdo -> Toggle
                 module.toggle();
                 return true;
             } else if (button == 1) { // Clic Derecho -> Expandir Settings
                 this.extended = !this.extended;
                 return true;
-            } else if (button == 2) { // Clic Central (Scroll) -> Escuchar Tecla
+            } else if (button == 2) { // Clic Central -> Escuchar Tecla
                 this.listeningForKey = !this.listeningForKey;
                 return true;
             }
@@ -81,9 +80,7 @@ public class ModuleButton {
         return false;
     }
 
-    public void mouseReleased(int mouseX, int mouseY, int button) {
-        // Reservado para interacciones de arrastre de sliders
-    }
+    public void mouseReleased(int mouseX, int mouseY, int button) {}
 
     public Module getModule() {
         return module;
