@@ -27,7 +27,7 @@ public class ModuleButton {
     }
 
     public void draw(DrawContext context, int parentX, int currentY, int mouseX, int mouseY) {
-        int widthBtn = 100;
+        int widthBtn = parent.getWidth();
         int height = 18;
 
         int color = module.isEnabled() ? 0xDD2A75D3 : 0xDD2D2D34;
@@ -38,14 +38,20 @@ public class ModuleButton {
         context.fill(parentX, currentY, parentX + widthBtn, currentY + height, color);
 
         TextRenderer tr = net.minecraft.client.MinecraftClient.getInstance().textRenderer;
-        String displayText = listeningForKey ? module.getName() + " [Listening...]" : module.getName();
+        String displayText = listeningForKey ? module.getName() + " [...]" : module.getName();
         context.drawTextWithShadow(tr, displayText, parentX + 6, currentY + 5, 0xFFFFFFFF);
+
+        // Indicador visual de opciones (+ / -) si el módulo tiene settings
+        if (!settingComponents.isEmpty()) {
+            String indicator = extended ? "-" : "+";
+            context.drawTextWithShadow(tr, indicator, parentX + widthBtn - 12, currentY + 5, 0xFFAAAAAA);
+        }
 
         if (extended) {
             int settingY = currentY + height;
             for (SettingComponent comp : settingComponents) {
-                comp.setPosition(parentX + 4, settingY);
-                comp.setWidth(widthBtn - 8);
+                comp.setPosition(parentX + 2, settingY);
+                comp.setWidth(widthBtn - 4);
                 comp.render(context, tr, mouseX, mouseY);
                 settingY += comp.getHeight();
             }
@@ -53,14 +59,19 @@ public class ModuleButton {
     }
 
     public boolean mousePressed(int mouseX, int mouseY, int button, int parentX, int currentY) {
-        int widthBtn = 100;
+        int widthBtn = parent.getWidth();
         int height = 18;
 
         if (isHovered(parentX, currentY, mouseX, mouseY, widthBtn, height)) {
-            if (button == 0) { // Clic Izquierdo -> Toggle
+            if (button == 0) { // Clic Izquierdo -> Toggle Módulo
+                if (listeningForKey) {
+                    module.setKey(0);
+                    listeningForKey = false;
+                    return true;
+                }
                 module.toggle();
                 return true;
-            } else if (button == 1) { // Clic Derecho -> Expandir Settings
+            } else if (button == 1) { // Clic Derecho -> Expandir / Contraer Ajustes
                 this.extended = !this.extended;
                 return true;
             } else if (button == 2) { // Clic Central -> Escuchar Tecla
@@ -92,14 +103,6 @@ public class ModuleButton {
 
     public void setListeningForKey(boolean listeningForKey) {
         this.listeningForKey = listeningForKey;
-    }
-
-    public int getOffsetY() {
-        return offsetY;
-    }
-
-    public void setOffsetY(int offsetY) {
-        this.offsetY = offsetY;
     }
 
     public int getTotalHeight() {
