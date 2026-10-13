@@ -1,6 +1,8 @@
 package com.nisra.client.ui.component;
 
 import com.nisra.client.module.Category;
+import com.nisra.client.module.Module;
+import com.nisra.client.module.ModuleManager;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 
@@ -15,33 +17,40 @@ public class Frame {
     private boolean extended = true;
     private final List<ModuleButton> buttons = new ArrayList<>();
 
-    public Frame(Category category, int x, int y, int width, int height) {
+    public Frame(Category category, int x, int y, int width, int height, ModuleManager moduleManager) {
         this.category = category;
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
+
+        int offsetY = 0;
+        if (moduleManager != null) {
+            for (Module module : moduleManager.getModules()) {
+                if (module.getCategory() == category) {
+                    buttons.add(new ModuleButton(module, this, offsetY));
+                    offsetY += 18;
+                }
+            }
+        }
     }
 
-    public void addButton(ModuleButton button) {
-        buttons.add(button);
-    }
-
-    public void render(DrawContext context, TextRenderer textRenderer, int mouseX, int mouseY, float delta) {
+    public void draw(DrawContext context, int mouseX, int mouseY) {
         if (dragging) {
             x = mouseX - dragX;
             y = mouseY - dragY;
         }
 
-        // Renderizar la cabecera de la categoría
+        // Renderizar cabecera de la categoría
         context.fill(x, y, x + width, y + height, 0xFF1E1E24);
-        context.drawTextWithShadow(textRenderer, category.getName(), x + 6, y + 5, 0xFFFFFFFF);
+        
+        TextRenderer tr = net.minecraft.client.MinecraftClient.getInstance().textRenderer;
+        context.drawTextWithShadow(tr, category.getName(), x + 6, y + 5, 0xFFFFFFFF);
 
         if (extended) {
             int currentY = y + height;
             for (ModuleButton button : buttons) {
                 button.draw(context, x, currentY, mouseX, mouseY);
-                // IMPORTANTE: Sumar la altura total para que los siguientes botones bajen correctamente
                 currentY += button.getTotalHeight();
             }
         }
@@ -49,12 +58,12 @@ public class Frame {
 
     public boolean mousePressed(double mouseX, double mouseY, int button) {
         if (isHovered(mouseX, mouseY, x, y, width, height)) {
-            if (button == 0) { // Clic izquierdo para arrastrar ventana
+            if (button == 0) { // Arrastrar ventana
                 dragging = true;
                 dragX = (int) mouseX - x;
                 dragY = (int) mouseY - y;
                 return true;
-            } else if (button == 1) { // Clic derecho para contraer toda la categoría
+            } else if (button == 1) { // Contraer / Expandir categoría
                 extended = !extended;
                 return true;
             }
@@ -80,6 +89,18 @@ public class Frame {
         for (ModuleButton mb : buttons) {
             mb.mouseReleased((int) mouseX, (int) mouseY, button);
         }
+    }
+
+    public void mouseDragged(int mouseX, int mouseY) {
+        // Controlado por la lógica de dragging en mousePressed
+    }
+
+    public void mouseScrolled(int mouseX, int mouseY, double amount) {
+        // Opcional para scroll en un futuro
+    }
+
+    public List<ModuleButton> getButtons() {
+        return buttons;
     }
 
     public int getX() { return x; }
